@@ -26,7 +26,6 @@ unsigned long previousTime = 0;
 const long timeoutTime = 2000;
 void handleFormSubmit() {
   WiFiClient client = server.available();
-  
   if (client) {
     while (client.connected()) {
       if (client.available()) {
@@ -80,7 +79,6 @@ void setup()
 void loop()
 {
   WiFiClient client = server.available();   // Listen for incoming clients
-
   if (client)
   {                             // If a new client connects,
     currentTime = millis();
@@ -107,7 +105,6 @@ void loop()
             client.println("Content-type:text/html");
             client.println("Connection: close");
             client.println();
-            
             // turns the GPIOs on and off
             if (header.indexOf("GET /26/on") >= 0)
             {
@@ -133,7 +130,6 @@ void loop()
               output27State = "off";
               digitalWrite(output27, LOW);
             }
-            
             // Display the HTML web page
             client.println("<!DOCTYPE html><html>");
             client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
@@ -144,19 +140,14 @@ void loop()
             client.println(".button { background-color: #4CAF50; border: none; color: white; padding: 16px 40px;");
             client.println("text-decoration: none; font-size: 30px; margin: 2px; cursor: pointer;}");
             client.println(".button2 {background-color: #555555;}</style></head>");
-            
             // Web Page Heading
             client.println("<body><h1>ESP32 Web Server</h1>");
-            
             // Display current state, and ON/OFF buttons for GPIO 26  
             client.println("<p>GPIO 26 - State " + output26State + "</p>");
-
             // Display current time
                 char message[50];  // Make sure the array is large enough to hold the formatted string
-
             // Format the string with the long value
             sprintf(message, "<p>currentTime %ld </p>", currentTime);
-
             // Print the formatted string using client.println (replace with your implementation)
             client.println(message);
             // If the output26State is off, it displays the ON button       
@@ -180,9 +171,8 @@ void loop()
               client.println("<p><a href=\"/27/off\"><button class=\"button button2\">OFF</button></a></p>");
             }
             client.println("</body></html>");
-            client.println("Enter a delay");
+            client.println("Enter a LED delay");
             client.println();
-
             String html = "<html><body>"
                           "<form action='/submit' method='POST'>"
                           "<input type='number' name='myNumber'>"
