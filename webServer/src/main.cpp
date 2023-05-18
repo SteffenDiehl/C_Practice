@@ -1,55 +1,57 @@
 // Load Wi-Fi library
 #include <WiFi.h>
 #include <WebServer.h>
-
 // Replace with your network credentials
 const char* ssid = "HUAWEI Mate 20 Pro";
 const char* password = "diehlwithit";
-
 // Set web server port number to 80
 WiFiServer server(80);
-
 // Variable to store the HTTP request
 String header;
-
 // Auxiliar variables to store the current output state
 String output26State = "off";
 String output27State = "off";
-
 // Variables Blink
 String TriggerName = "Whats the frequenze?";
-
-
+int inputValue = 0;
+int blinkon = 0;
 // Assign output variables to GPIO pins
 const int output26 = 26;
 const int output27 = 27;
-
 // Current time
 unsigned long currentTime = millis();
 // Previous time
 unsigned long previousTime = 0; 
 // Define timeout time in milliseconds (example: 2000ms = 2s)
 const long timeoutTime = 2000;
-
-void handleRoot() {
-  // Serve the HTML form for the input field
-  String html = "<form action='/submit' method='POST'>"
-                "<input type='number' name='myNumber'>"
-                "<input type='submit' value='Submit'>"
-                "</form>";
-  server.send(200, "text/html", html);
-}
-
 void handleFormSubmit() {
-  if (server.hasArg("myNumber")) {
-    int inputValue = server.arg("myNumber").toInt();
-    // Do something with the input value
-    // For example, print it to the serial monitor
-    Serial.println(inputValue);
+  WiFiClient client = server.available();
+  
+  if (client) {
+    while (client.connected()) {
+      if (client.available()) {
+        String request = client.readStringUntil('\r');
+        client.flush();
+        
+        if (request.indexOf("/submit") != -1) {
+          if (request.indexOf("myNumber=") != -1) {
+            String inputValue = request.substring(request.indexOf("myNumber=") + 9);
+            int parsedValue = inputValue.toInt();
+            
+            // Perform actions with the parsedValue
+            
+            client.println("HTTP/1.1 200 OK");
+            client.println("Content-type:text/html");
+            client.println();
+            client.println("<html><body>Form submitted!</body></html>");
+            break;
+          }
+        }
+      }
+    }
+    client.stop();
   }
-  server.send(200, "text/plain", "Form submitted");
 }
-
 void setup()
 {
   Serial.begin(115200);
@@ -59,7 +61,6 @@ void setup()
   // Set outputs to LOW
   digitalWrite(output26, LOW);
   digitalWrite(output27, LOW);
-
   // Connect to Wi-Fi network with SSID and password
   Serial.print("Connecting to ");
   Serial.println(ssid);
@@ -74,22 +75,18 @@ void setup()
   Serial.println("WiFi connected.");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
-  server.on("/", handleRoot);
-  server.on("/submit", handleFormSubmit);
   server.begin();
 }
-
 void loop()
 {
   WiFiClient client = server.available();   // Listen for incoming clients
-
   if (client)
   {                             // If a new client connects,
     currentTime = millis();
     previousTime = currentTime;
     Serial.println("New Client.");          // print a message out in the serial port
     String currentLine = "";                // make a String to hold incoming data from the client
-    while (client.connected() && currentTime - previousTime <= timeoutTime)
+    while (client.connected() && !client.available())
     {  // loop while the client's connected
       currentTime = millis();
       if (client.available())
@@ -135,16 +132,15 @@ void loop()
               output27State = "off";
               digitalWrite(output27, LOW);
             }
-            if (output26 == "on" && 26 == LOW)
+            if (output26State.equals("on") && 26 == LOW)
             {
-              int blinkon = millis();
+              blinkon = millis();
               digitalWrite(output26, HIGH);
             }
-            if (output26 == "on" && currentTime >= (blinkon + inputvalue))
+            if (output26State.equals("on") && currentTime >= (blinkon + inputValue))
             {
               digitalWrite(output26, LOW);
             }
-
             // Display the HTML web page
             client.println("<!DOCTYPE html><html>");
             client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
@@ -161,13 +157,10 @@ void loop()
             
             // Display current state, and ON/OFF buttons for GPIO 26  
             client.println("<p>GPIO 26 - State " + output26State + "</p>");
-
             // Display current time
                 char message[50];  // Make sure the array is large enough to hold the formatted string
-
             // Format the string with the long value
             sprintf(message, "<p>currentTime %ld </p>", currentTime);
-
             // Print the formatted string using client.println (replace with your implementation)
             client.println(message);
             // If the output26State is off, it displays the ON button       
@@ -179,7 +172,6 @@ void loop()
             {
               client.println("<p><a href=\"/26/off\"><button class=\"button button2\">OFF</button></a></p>");
             } 
-               
             // Display current state, and ON/OFF buttons for GPIO 27  
             client.println("<p>GPIO 27 - State " + output27State + "</p>");
             // If the output27State is off, it displays the ON button       
@@ -192,6 +184,16 @@ void loop()
               client.println("<p><a href=\"/27/off\"><button class=\"button button2\">OFF</button></a></p>");
             }
             client.println("</body></html>");
+            
+            client.println("Enter a delay");
+            client.println();
+            String html = "<html><body>"
+                          "<form action='/submit' method='POST'>"
+                          "<input type='number' name='myNumber'>"
+                          "<input type='submit' value='Submit'>"
+                          "</form>"
+                          "</body></html>";
+            client.print(html);
             
             // The HTTP response ends with another blank line
             client.println();
