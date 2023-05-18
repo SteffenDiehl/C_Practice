@@ -1,5 +1,6 @@
 // Load Wi-Fi library
 #include <WiFi.h>
+#include <WebServer.h>
 
 // Replace with your network credentials
 const char* ssid = "HUAWEI Mate 20 Pro";
@@ -15,6 +16,10 @@ String header;
 String output26State = "off";
 String output27State = "off";
 
+// Variables Blink
+String TriggerName = "Whats the frequenze?";
+
+
 // Assign output variables to GPIO pins
 const int output26 = 26;
 const int output27 = 27;
@@ -25,6 +30,25 @@ unsigned long currentTime = millis();
 unsigned long previousTime = 0; 
 // Define timeout time in milliseconds (example: 2000ms = 2s)
 const long timeoutTime = 2000;
+
+void handleRoot() {
+  // Serve the HTML form for the input field
+  String html = "<form action='/submit' method='POST'>"
+                "<input type='number' name='myNumber'>"
+                "<input type='submit' value='Submit'>"
+                "</form>";
+  server.send(200, "text/html", html);
+}
+
+void handleFormSubmit() {
+  if (server.hasArg("myNumber")) {
+    int inputValue = server.arg("myNumber").toInt();
+    // Do something with the input value
+    // For example, print it to the serial monitor
+    Serial.println(inputValue);
+  }
+  server.send(200, "text/plain", "Form submitted");
+}
 
 void setup()
 {
@@ -50,6 +74,8 @@ void setup()
   Serial.println("WiFi connected.");
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
+  server.on("/", handleRoot);
+  server.on("/submit", handleFormSubmit);
   server.begin();
 }
 
@@ -109,7 +135,16 @@ void loop()
               output27State = "off";
               digitalWrite(output27, LOW);
             }
-            
+            if (output26 == "on" && 26 == LOW)
+            {
+              int blinkon = millis();
+              digitalWrite(output26, HIGH);
+            }
+            if (output26 == "on" && currentTime >= (blinkon + inputvalue))
+            {
+              digitalWrite(output26, LOW);
+            }
+
             // Display the HTML web page
             client.println("<!DOCTYPE html><html>");
             client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
