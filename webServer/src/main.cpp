@@ -80,13 +80,14 @@ void setup()
 void loop()
 {
   WiFiClient client = server.available();   // Listen for incoming clients
+
   if (client)
   {                             // If a new client connects,
     currentTime = millis();
     previousTime = currentTime;
     Serial.println("New Client.");          // print a message out in the serial port
     String currentLine = "";                // make a String to hold incoming data from the client
-    while (client.connected() && !client.available())
+    while (client.connected() && currentTime - previousTime <= timeoutTime)
     {  // loop while the client's connected
       currentTime = millis();
       if (client.available())
@@ -132,15 +133,7 @@ void loop()
               output27State = "off";
               digitalWrite(output27, LOW);
             }
-            if (output26State.equals("on") && 26 == LOW)
-            {
-              blinkon = millis();
-              digitalWrite(output26, HIGH);
-            }
-            if (output26State.equals("on") && currentTime >= (blinkon + inputValue))
-            {
-              digitalWrite(output26, LOW);
-            }
+            
             // Display the HTML web page
             client.println("<!DOCTYPE html><html>");
             client.println("<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
@@ -157,10 +150,13 @@ void loop()
             
             // Display current state, and ON/OFF buttons for GPIO 26  
             client.println("<p>GPIO 26 - State " + output26State + "</p>");
+
             // Display current time
                 char message[50];  // Make sure the array is large enough to hold the formatted string
+
             // Format the string with the long value
             sprintf(message, "<p>currentTime %ld </p>", currentTime);
+
             // Print the formatted string using client.println (replace with your implementation)
             client.println(message);
             // If the output26State is off, it displays the ON button       
@@ -184,19 +180,17 @@ void loop()
               client.println("<p><a href=\"/27/off\"><button class=\"button button2\">OFF</button></a></p>");
             }
             client.println("</body></html>");
-            
             client.println("Enter a delay");
             client.println();
+
             String html = "<html><body>"
                           "<form action='/submit' method='POST'>"
                           "<input type='number' name='myNumber'>"
                           "<input type='submit' value='Submit'>"
                           "</form>"
                           "</body></html>";
-            client.print(html);
-            
             // The HTTP response ends with another blank line
-            client.println();
+            client.println(html);
             // Break out of the while loop
             break;
           }
